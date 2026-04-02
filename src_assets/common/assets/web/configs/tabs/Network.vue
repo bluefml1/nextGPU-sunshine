@@ -173,6 +173,82 @@ const effectivePort = computed(() => +config.value?.port ?? defaultMoonlightPort
       <div class="form-text">{{ $t('config.ping_timeout_desc') }}</div>
     </div>
 
+    <!-- Adaptive Bitrate -->
+    <Checkbox class="mb-3"
+              id="abr_enable"
+              locale-prefix="config"
+              v-model="config.abr_enable"
+              default="disabled"
+    ></Checkbox>
+
+    <div v-if="config.abr_enable === 'enabled'">
+      <div class="mb-3">
+        <label for="abr_min_bitrate" class="form-label">{{ $t('config.abr_min_bitrate') }}</label>
+        <input type="number" class="form-control" id="abr_min_bitrate" min="100" max="100000" placeholder="2000" v-model="config.abr_min_bitrate" />
+        <div class="form-text">{{ $t('config.abr_min_bitrate_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_max_bitrate" class="form-label">{{ $t('config.abr_max_bitrate') }}</label>
+        <input type="number" class="form-control" id="abr_max_bitrate" min="100" max="100000" placeholder="15000" v-model="config.abr_max_bitrate" />
+        <div class="form-text">{{ $t('config.abr_max_bitrate_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_step_down_pct" class="form-label">{{ $t('config.abr_step_down_pct') }}</label>
+        <input type="number" class="form-control" id="abr_step_down_pct" min="1" max="50" placeholder="15" v-model="config.abr_step_down_pct" />
+        <div class="form-text">{{ $t('config.abr_step_down_pct_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_step_down_hard_pct" class="form-label">{{ $t('config.abr_step_down_hard_pct') }}</label>
+        <input type="number" class="form-control" id="abr_step_down_hard_pct" min="1" max="80" placeholder="30" v-model="config.abr_step_down_hard_pct" />
+        <div class="form-text">{{ $t('config.abr_step_down_hard_pct_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_step_up_pct" class="form-label">{{ $t('config.abr_step_up_pct') }}</label>
+        <input type="number" class="form-control" id="abr_step_up_pct" min="1" max="50" placeholder="6" v-model="config.abr_step_up_pct" />
+        <div class="form-text">{{ $t('config.abr_step_up_pct_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_cooldown_ms" class="form-label">{{ $t('config.abr_cooldown_ms') }}</label>
+        <input type="number" class="form-control" id="abr_cooldown_ms" min="200" max="5000" placeholder="750" v-model="config.abr_cooldown_ms" />
+        <div class="form-text">{{ $t('config.abr_cooldown_ms_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_good_windows" class="form-label">{{ $t('config.abr_good_windows') }}</label>
+        <input type="number" class="form-control" id="abr_good_windows" min="1" max="20" placeholder="6" v-model="config.abr_good_windows" />
+        <div class="form-text">{{ $t('config.abr_good_windows_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_loss_bad_pct" class="form-label">{{ $t('config.abr_loss_bad_pct') }}</label>
+        <input type="number" class="form-control" id="abr_loss_bad_pct" min="0" max="100" placeholder="3" v-model="config.abr_loss_bad_pct" />
+        <div class="form-text">{{ $t('config.abr_loss_bad_pct_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_loss_very_bad_pct" class="form-label">{{ $t('config.abr_loss_very_bad_pct') }}</label>
+        <input type="number" class="form-control" id="abr_loss_very_bad_pct" min="0" max="100" placeholder="8" v-model="config.abr_loss_very_bad_pct" />
+        <div class="form-text">{{ $t('config.abr_loss_very_bad_pct_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_rtt_threshold_ms" class="form-label">{{ $t('config.abr_rtt_threshold_ms') }}</label>
+        <input type="number" class="form-control" id="abr_rtt_threshold_ms" min="1" max="10000" placeholder="120" v-model="config.abr_rtt_threshold_ms" />
+        <div class="form-text">{{ $t('config.abr_rtt_threshold_ms_desc') }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label for="abr_jitter_threshold_ms" class="form-label">{{ $t('config.abr_jitter_threshold_ms') }}</label>
+        <input type="number" class="form-control" id="abr_jitter_threshold_ms" min="0" max="10000" placeholder="25" v-model="config.abr_jitter_threshold_ms" />
+        <div class="form-text">{{ $t('config.abr_jitter_threshold_ms_desc') }}</div>
+      </div>
+    </div>
+
   </div>
 </template>
 

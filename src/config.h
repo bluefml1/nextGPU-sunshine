@@ -162,6 +162,21 @@ namespace config {
 
     int fec_percentage;
 
+    struct abr_t {
+      bool enable;
+      int min_bitrate_kbps;
+      int max_bitrate_kbps;
+      int step_down_pct;
+      int step_down_hard_pct;
+      int step_up_pct;
+      int cooldown_ms;
+      int good_windows;
+      int loss_bad_pct;
+      int loss_very_bad_pct;
+      int rtt_threshold_ms;
+      int jitter_threshold_ms;
+    } abr;
+
     // Video encryption settings for LAN and WAN streams
     int lan_encryption_mode;
     int wan_encryption_mode;

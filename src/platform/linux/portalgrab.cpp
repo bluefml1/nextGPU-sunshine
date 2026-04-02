@@ -65,6 +65,13 @@ namespace {
 using namespace std::literals;
 
 namespace portal {
+  struct portal_stream_t {
+    int node;
+    int width;
+    int height;
+    std::string name;
+  };
+
   // Forward declarations
   class session_cache_t;
 

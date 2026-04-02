@@ -522,6 +522,21 @@ namespace config {
 
     20,  // fecPercentage
 
+    {
+      false,  // enable
+      2000,  // min_bitrate_kbps
+      15000,  // max_bitrate_kbps
+      15,  // step_down_pct
+      30,  // step_down_hard_pct
+      6,  // step_up_pct
+      750,  // cooldown_ms
+      6,  // good_windows
+      3,  // loss_bad_pct
+      8,  // loss_very_bad_pct
+      120,  // rtt_threshold_ms
+      25,  // jitter_threshold_ms
+    },  // abr
+
     ENCRYPTION_MODE_NEVER,  // lan_encryption_mode
     ENCRYPTION_MODE_OPPORTUNISTIC,  // wan_encryption_mode
   };
@@ -1209,6 +1224,19 @@ namespace config {
     if (to != -1) {
       stream.ping_timeout = std::chrono::milliseconds(to);
     }
+
+    bool_f(vars, "abr_enable", stream.abr.enable);
+    int_between_f(vars, "abr_min_bitrate", stream.abr.min_bitrate_kbps, {100, 100000});
+    int_between_f(vars, "abr_max_bitrate", stream.abr.max_bitrate_kbps, {100, 100000});
+    int_between_f(vars, "abr_step_down_pct", stream.abr.step_down_pct, {1, 50});
+    int_between_f(vars, "abr_step_down_hard_pct", stream.abr.step_down_hard_pct, {1, 80});
+    int_between_f(vars, "abr_step_up_pct", stream.abr.step_up_pct, {1, 50});
+    int_between_f(vars, "abr_cooldown_ms", stream.abr.cooldown_ms, {200, 5000});
+    int_between_f(vars, "abr_good_windows", stream.abr.good_windows, {1, 20});
+    int_between_f(vars, "abr_loss_bad_pct", stream.abr.loss_bad_pct, {0, 100});
+    int_between_f(vars, "abr_loss_very_bad_pct", stream.abr.loss_very_bad_pct, {0, 100});
+    int_between_f(vars, "abr_rtt_threshold_ms", stream.abr.rtt_threshold_ms, {1, 10000});
+    int_between_f(vars, "abr_jitter_threshold_ms", stream.abr.jitter_threshold_ms, {0, 10000});
 
     int_between_f(vars, "lan_encryption_mode", stream.lan_encryption_mode, {0, 2});
     int_between_f(vars, "wan_encryption_mode", stream.wan_encryption_mode, {0, 2});

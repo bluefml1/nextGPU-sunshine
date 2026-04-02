@@ -4,6 +4,7 @@
  */
 
 // standard includes
+#include <cmath>
 #include <fstream>
 #include <future>
 #include <queue>
@@ -78,6 +79,12 @@ using asio::ip::udp;
 using namespace std::literals;
 
 namespace stream {
+  static inline std::uint64_t now_ms() {
+    return (std::uint64_t) std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now().time_since_epoch()
+           )
+      .count();
+  }
 
   enum class socket_e : int {
     video,  ///< Video
@@ -341,6 +348,23 @@ namespace stream {
   };
 
   struct session_t {
+    struct network_telemetry_t {
+      std::atomic<std::uint32_t> loss_count_recent {0};
+      std::atomic<std::uint32_t> loss_interval_ms {0};
+      std::atomic<std::uint32_t> loss_pct {0};
+      std::atomic<std::uint32_t> rtt_ms {0};
+      std::atomic<std::uint32_t> jitter_ms {0};
+      std::atomic<std::uint64_t> last_update_ts {0};
+    };
+    struct abr_state_t {
+      std::uint32_t current_bitrate_kbps {0};
+      std::uint32_t min_bitrate_kbps {0};
+      std::uint32_t max_bitrate_kbps {0};
+      std::uint64_t last_change_ts {0};
+      std::uint32_t bad_windows {0};
+      std::uint32_t good_windows {0};
+    };
+
     config_t config;
 
     safe::mail_t mail;
@@ -351,6 +375,8 @@ namespace stream {
     std::thread videoThread;
 
     std::chrono::steady_clock::time_point pingTimeout;
+    network_telemetry_t telemetry;
+    abr_state_t abr;
 
     safe::shared_t<broadcast_ctx_t>::ptr_t broadcast_ref;
 
@@ -946,6 +972,16 @@ namespace stream {
         << "time in milli since last report [" << t.count() << ']' << std::endl
         << "last good frame [" << lastGoodFrame << ']' << std::endl
         << "---end stats---";
+
+      session->telemetry.loss_count_recent.store((std::uint32_t) std::max<int32_t>(0, count), std::memory_order_relaxed);
+      session->telemetry.loss_interval_ms.store((std::uint32_t) std::max<int64_t>(0, t.count()), std::memory_order_relaxed);
+      // This is a normalized loss severity (losses per second), not a strict packet percentage.
+      std::uint32_t loss_pct = 0;
+      if (t.count() > 0) {
+        loss_pct = (std::uint32_t) std::max<int64_t>(0, ((int64_t) count * 1000) / t.count());
+      }
+      session->telemetry.loss_pct.store(loss_pct, std::memory_order_relaxed);
+      session->telemetry.last_update_ts.store(now_ms(), std::memory_order_relaxed);
     });
 
     server->map(packetTypes[IDX_REQUEST_IDR_FRAME], [&](session_t *session, const std::string_view &payload) {
@@ -1083,6 +1119,11 @@ namespace stream {
           }
 
           auto session = *pos;
+
+          if (session->control.peer) {
+            session->telemetry.rtt_ms.store(session->control.peer->roundTripTime, std::memory_order_relaxed);
+            session->telemetry.jitter_ms.store(session->control.peer->roundTripTimeVariance, std::memory_order_relaxed);
+          }
 
           if (now > session->pingTimeout) {
             auto address = session->control.peer ? platf::from_sockaddr((sockaddr *) &session->control.peer->address.address) : session->control.expected_peer_address;
@@ -1404,8 +1445,69 @@ namespace stream {
       }
 
       try {
-        // Use around 80% of 1Gbps          1Gbps            percent    ms     packet      byte
-        size_t ratecontrol_packets_in_1ms = std::giga::num * 80 / 100 / 1000 / blocksize / 8;
+        if (config::stream.abr.enable) {
+          auto now = now_ms();
+          if (session->abr.current_bitrate_kbps > 0 &&
+              now - session->abr.last_change_ts >= (std::uint64_t) config::stream.abr.cooldown_ms) {
+            auto loss = session->telemetry.loss_pct.load(std::memory_order_relaxed);
+            auto rtt = session->telemetry.rtt_ms.load(std::memory_order_relaxed);
+            auto jitter = session->telemetry.jitter_ms.load(std::memory_order_relaxed);
+
+            bool very_bad = loss > (std::uint32_t) config::stream.abr.loss_very_bad_pct;
+            bool bad = loss > (std::uint32_t) config::stream.abr.loss_bad_pct ||
+                       rtt > (std::uint32_t) config::stream.abr.rtt_threshold_ms ||
+                       jitter > (std::uint32_t) config::stream.abr.jitter_threshold_ms;
+
+            float target = (float) session->abr.current_bitrate_kbps;
+            if (very_bad) {
+              session->abr.bad_windows++;
+              session->abr.good_windows = 0;
+              target *= (100.0f - (float) config::stream.abr.step_down_hard_pct) / 100.0f;
+            } else if (bad) {
+              session->abr.bad_windows++;
+              session->abr.good_windows = 0;
+              target *= (100.0f - (float) config::stream.abr.step_down_pct) / 100.0f;
+            } else {
+              session->abr.bad_windows = 0;
+              session->abr.good_windows++;
+              if (session->abr.good_windows >= (std::uint32_t) config::stream.abr.good_windows) {
+                target *= (100.0f + (float) config::stream.abr.step_up_pct) / 100.0f;
+              }
+            }
+
+            target = std::clamp(
+              target,
+              (float) session->abr.min_bitrate_kbps,
+              (float) session->abr.max_bitrate_kbps
+            );
+
+            auto current = (float) session->abr.current_bitrate_kbps;
+            float delta = current > 0.f ? std::abs(target - current) / current : 0.f;
+            if (delta > 0.02f) {
+              auto previous = session->abr.current_bitrate_kbps;
+              session->abr.current_bitrate_kbps = (std::uint32_t) target;
+              session->abr.last_change_ts = now;
+
+              BOOST_LOG(info)
+                << "ABR bitrate updated "sv
+                << previous << " -> "sv
+                << session->abr.current_bitrate_kbps << " kbps"
+                << " [loss="sv << loss
+                << ", rtt="sv << rtt
+                << ", jitter="sv << jitter
+                << ", bad="sv << bad
+                << ", very_bad="sv << very_bad
+                << ']';
+            }
+          }
+        }
+
+        std::uint32_t bitrate_kbps = session->abr.current_bitrate_kbps;
+        if (bitrate_kbps == 0) {
+          bitrate_kbps = std::max<int>(1000, session->config.monitor.bitrate);
+        }
+        size_t ratecontrol_packets_in_1ms =
+          std::max<size_t>(1, ((std::uint64_t) bitrate_kbps * 1000ull) / 1000ull / ((std::uint64_t) blocksize * 8ull));
 
         // Send less than 64K in a single batch.
         // On Windows, batches above 64K seem to bypass SO_SNDBUF regardless of its size,
@@ -2065,6 +2167,22 @@ namespace stream {
       session->audio.avRiKeyId = util::endian::big(*(std::uint32_t *) launch_session.iv.data());
       session->audio.sequenceNumber = 0;
       session->audio.timestamp = 0;
+
+      auto max_bitrate_kbps = config::video.max_bitrate > 0 ?
+                                std::min(config::video.max_bitrate, session->config.monitor.bitrate) :
+                                session->config.monitor.bitrate;
+      if (max_bitrate_kbps <= 0) {
+        max_bitrate_kbps = 1000;
+      }
+      auto min_bitrate_kbps = std::max(100, config::stream.abr.min_bitrate_kbps);
+      if (min_bitrate_kbps > max_bitrate_kbps) {
+        min_bitrate_kbps = max_bitrate_kbps;
+      }
+
+      session->abr.current_bitrate_kbps = (std::uint32_t) max_bitrate_kbps;
+      session->abr.min_bitrate_kbps = (std::uint32_t) min_bitrate_kbps;
+      session->abr.max_bitrate_kbps = (std::uint32_t) max_bitrate_kbps;
+      session->abr.last_change_ts = now_ms();
 
       session->control.peer = nullptr;
       session->state.store(state_e::STOPPED, std::memory_order_relaxed);
