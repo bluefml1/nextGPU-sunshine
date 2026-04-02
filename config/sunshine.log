@@ -1,0 +1,455 @@
+[2026-03-14 22:45:53.071]: Info: Sunshine version: 2026.311.154809 commit: b3f0e2370ce86caccbdfa5227c8ea224e552c4bc
+[2026-03-14 22:45:53.073]: Info: Package Publisher: LizardByte
+[2026-03-14 22:45:53.073]: Info: Publisher Website: https://app.lizardbyte.dev
+[2026-03-14 22:45:53.073]: Info: Get support: https://app.lizardbyte.dev/support
+[2026-03-14 22:45:53.074]: Info: Provided workaround settings for SettingsManager:
+{
+  "hdr_blank_delay": null
+}
+[2026-03-14 22:45:53.115]: Info: Currently available display devices:
+[
+  {
+    "device_id": "{c29038dd-aa20-57b5-be57-90ab830616eb}",
+    "display_name": "\\\\.\\DISPLAY1",
+    "edid": {
+      "manufacturer_id": "AUO",
+      "product_code": "23ED",
+      "serial_number": 0
+    },
+    "friendly_name": "",
+    "info": {
+      "hdr_state": null,
+      "origin_point": {
+        "x": 0,
+        "y": 0
+      },
+      "primary": true,
+      "refresh_rate": {
+        "type": "rational",
+        "value": {
+          "denominator": 236460,
+          "numerator": 14200000
+        }
+      },
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "resolution_scale": {
+        "type": "rational",
+        "value": {
+          "denominator": 100,
+          "numerator": 125
+        }
+      }
+    }
+  }
+]
+[2026-03-14 22:45:54.449]: Info: nvprefs: No need to modify application profile settings
+[2026-03-14 22:45:54.450]: Info: nvprefs: Changed OGL_CPL_PREFER_DXPRESENT to OGL_CPL_PREFER_DXPRESENT_PREFER_ENABLED for base profile
+[2026-03-14 22:45:54.789]: Info: Compiling shaders...
+[2026-03-14 22:45:55.885]: Info: Compiled shaders
+[2026-03-14 22:45:56.021]: Fatal: ViGEmBus is not installed or running. You must install ViGEmBus for gamepad support!
+[2026-03-14 22:45:56.033]: Info: // Testing for available encoders, this may generate errors. You can safely ignore those errors. //
+[2026-03-14 22:45:56.033]: Info: Trying encoder [nvenc]
+[2026-03-14 22:45:56.694]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 22:45:56.696]: Info: Active GPU has HAGS disabled
+[2026-03-14 22:45:56.697]: Info: Using realtime GPU priority
+[2026-03-14 22:45:56.706]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 22:45:56.707]: Info: Desktop resolution [1920x1080]
+[2026-03-14 22:45:56.707]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 22:45:56.707]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 22:45:56.707]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 22:45:56.728]: Info: Encoder [nvenc] is not supported on this GPU
+[2026-03-14 22:46:01.603]: Info: Trying encoder [quicksync]
+[2026-03-14 22:46:02.330]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 22:46:02.344]: Info: Active GPU has HAGS disabled
+[2026-03-14 22:46:02.344]: Info: Using realtime GPU priority
+[2026-03-14 22:46:02.344]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 22:46:02.345]: Info: Desktop resolution [1920x1080]
+[2026-03-14 22:46:02.345]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 22:46:02.345]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 22:46:02.345]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 22:46:02.346]: Info: Creating encoder [h264_qsv]
+[2026-03-14 22:46:02.347]: Info: Color coding: SDR (Rec. 601)
+[2026-03-14 22:46:02.347]: Info: Color depth: 8-bit
+[2026-03-14 22:46:02.347]: Info: Color range: JPEG
+[2026-03-14 22:46:04.907]: Info: Streaming bitrate is 1000000
+[2026-03-14 22:46:09.848]: Info: Creating encoder [hevc_qsv]
+[2026-03-14 22:46:09.848]: Info: Color coding: SDR (Rec. 601)
+[2026-03-14 22:46:09.848]: Info: Color depth: 8-bit
+[2026-03-14 22:46:09.848]: Info: Color range: JPEG
+[2026-03-14 22:46:10.989]: Info: Streaming bitrate is 1000000
+[2026-03-14 22:46:13.540]: Info: Creating encoder [av1_qsv]
+[2026-03-14 22:46:13.540]: Info: Color coding: SDR (Rec. 601)
+[2026-03-14 22:46:13.540]: Info: Color depth: 8-bit
+[2026-03-14 22:46:13.540]: Info: Color range: JPEG
+[2026-03-14 22:46:14.121]: Info: Streaming bitrate is 1000000
+[2026-03-14 22:46:14.151]: Error: [av1_qsv @ 000002142df7d600] Current codec type is unsupported
+[2026-03-14 22:46:14.151]: Error: [av1_qsv @ 000002142df7d600] some encoding parameters are not supported by the QSV runtime. Please double check the input parameters.
+[2026-03-14 22:46:14.156]: Error: Could not open codec [av1_qsv]: Function not implemented
+[2026-03-14 22:46:14.544]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 22:46:14.545]: Info: Active GPU has HAGS disabled
+[2026-03-14 22:46:14.545]: Info: Using realtime GPU priority
+[2026-03-14 22:46:14.545]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 22:46:14.546]: Info: Desktop resolution [1920x1080]
+[2026-03-14 22:46:14.546]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 22:46:14.546]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 22:46:14.546]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 22:46:14.547]: Info: Creating encoder [hevc_qsv]
+[2026-03-14 22:46:14.547]: Info: Color coding: SDR (Rec. 709)
+[2026-03-14 22:46:14.547]: Info: Color depth: 10-bit
+[2026-03-14 22:46:14.548]: Info: Color range: JPEG
+[2026-03-14 22:46:16.140]: Info: Streaming bitrate is 1000000
+[2026-03-14 22:46:19.153]: Info: 
+[2026-03-14 22:46:19.153]: Info: // Ignore any errors mentioned above, they are not relevant. //
+[2026-03-14 22:46:19.153]: Info: 
+[2026-03-14 22:46:19.154]: Info: Found H.264 encoder: h264_qsv [quicksync]
+[2026-03-14 22:46:19.154]: Info: Found HEVC encoder: hevc_qsv [quicksync]
+[2026-03-14 22:46:19.173]: Info: Starting system tray
+[2026-03-14 22:46:19.175]: Info: System tray thread initialized successfully
+[2026-03-14 22:46:19.175]: Info: No main thread features enabled, skipping event loop
+[2026-03-14 22:46:19.215]: Info: System tray thread started
+[2026-03-14 22:46:19.330]: Info: Configuration UI available at [https://localhost:47990]
+[2026-03-14 22:46:19.460]: Info: System tray created
+[2026-03-14 22:46:20.119]: Info: Registered Sunshine mDNS service
+[2026-03-14 22:46:23.923]: Info: Web UI: [127.0.0.1] -- not authorized
+[2026-03-14 22:46:23.924]: Info: Web UI: [127.0.0.1] -- not authorized
+[2026-03-14 22:46:27.725]: Info: Web UI: [127.0.0.1] -- not authorized
+[2026-03-14 22:47:43.294]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:26:43.116]: Info: Opening UI from system tray
+[2026-03-14 23:26:43.132]: Info: Resolved user-provided command 'https://localhost:47990' to '"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" --single-argument https://localhost:47990'
+[2026-03-14 23:26:43.141]: Info: https://localhost:47990 running with PID 4880
+[2026-03-14 23:26:43.141]: Info: Opened url [https://localhost:47990]
+[2026-03-14 23:26:43.886]: Info: Web UI: [127.0.0.1] -- not authorized
+[2026-03-14 23:55:04.995]: Info: Resolved user-provided command 'https://localhost:47990/pin' to '"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" --single-argument https://localhost:47990/pin'
+[2026-03-14 23:55:05.000]: Info: https://localhost:47990/pin running with PID 31504
+[2026-03-14 23:55:05.000]: Info: Opened url [https://localhost:47990/pin]
+[2026-03-14 23:55:17.417]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:55:21.183]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:55:21.813]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:55:22.146]: Info: Encoder reenumeration is required
+[2026-03-14 23:55:22.146]: Info: // Testing for available encoders, this may generate errors. You can safely ignore those errors. //
+[2026-03-14 23:55:22.147]: Info: Trying encoder [nvenc]
+[2026-03-14 23:55:22.211]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 23:55:22.211]: Info: Active GPU has HAGS disabled
+[2026-03-14 23:55:22.211]: Info: Using realtime GPU priority
+[2026-03-14 23:55:22.212]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 23:55:22.212]: Info: Desktop resolution [1920x1080]
+[2026-03-14 23:55:22.212]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:55:22.212]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 23:55:22.212]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 23:55:22.213]: Info: Encoder [nvenc] is not supported on this GPU
+[2026-03-14 23:55:22.282]: Info: Trying encoder [quicksync]
+[2026-03-14 23:55:22.340]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 23:55:22.340]: Info: Active GPU has HAGS disabled
+[2026-03-14 23:55:22.341]: Info: Using realtime GPU priority
+[2026-03-14 23:55:22.341]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 23:55:22.341]: Info: Desktop resolution [1920x1080]
+[2026-03-14 23:55:22.341]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:55:22.341]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 23:55:22.341]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 23:55:22.342]: Info: Creating encoder [h264_qsv]
+[2026-03-14 23:55:22.342]: Info: Color coding: SDR (Rec. 601)
+[2026-03-14 23:55:22.342]: Info: Color depth: 8-bit
+[2026-03-14 23:55:22.342]: Info: Color range: JPEG
+[2026-03-14 23:55:22.632]: Info: Streaming bitrate is 1000000
+[2026-03-14 23:55:22.725]: Info: Creating encoder [hevc_qsv]
+[2026-03-14 23:55:22.726]: Info: Color coding: SDR (Rec. 601)
+[2026-03-14 23:55:22.726]: Info: Color depth: 8-bit
+[2026-03-14 23:55:22.726]: Info: Color range: JPEG
+[2026-03-14 23:55:22.903]: Info: Streaming bitrate is 1000000
+[2026-03-14 23:55:23.070]: Info: Creating encoder [av1_qsv]
+[2026-03-14 23:55:23.070]: Info: Color coding: SDR (Rec. 601)
+[2026-03-14 23:55:23.070]: Info: Color depth: 8-bit
+[2026-03-14 23:55:23.070]: Info: Color range: JPEG
+[2026-03-14 23:55:23.256]: Info: Streaming bitrate is 1000000
+[2026-03-14 23:55:23.266]: Error: [av1_qsv @ 000002142f4b2f00] Current codec type is unsupported
+[2026-03-14 23:55:23.266]: Error: [av1_qsv @ 000002142f4b2f00] some encoding parameters are not supported by the QSV runtime. Please double check the input parameters.
+[2026-03-14 23:55:23.269]: Error: Could not open codec [av1_qsv]: Function not implemented
+[2026-03-14 23:55:23.341]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 23:55:23.341]: Info: Active GPU has HAGS disabled
+[2026-03-14 23:55:23.341]: Info: Using realtime GPU priority
+[2026-03-14 23:55:23.341]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 23:55:23.341]: Info: Desktop resolution [1920x1080]
+[2026-03-14 23:55:23.341]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:55:23.341]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 23:55:23.342]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 23:55:23.342]: Info: Creating encoder [hevc_qsv]
+[2026-03-14 23:55:23.342]: Info: Color coding: SDR (Rec. 709)
+[2026-03-14 23:55:23.342]: Info: Color depth: 10-bit
+[2026-03-14 23:55:23.342]: Info: Color range: JPEG
+[2026-03-14 23:55:23.520]: Info: Streaming bitrate is 1000000
+[2026-03-14 23:55:23.648]: Info: 
+[2026-03-14 23:55:23.648]: Info: // Ignore any errors mentioned above, they are not relevant. //
+[2026-03-14 23:55:23.648]: Info: 
+[2026-03-14 23:55:23.648]: Info: Found H.264 encoder: h264_qsv [quicksync]
+[2026-03-14 23:55:23.648]: Info: Found HEVC encoder: hevc_qsv [quicksync]
+[2026-03-14 23:55:23.648]: Info: Executing [Desktop]
+[2026-03-14 23:55:25.829]: Info: New streaming session started [active sessions: 1]
+[2026-03-14 23:55:26.079]: Info: nvprefs: No need to modify application profile settings
+[2026-03-14 23:55:26.079]: Info: nvprefs: No need to modify global profile settings
+[2026-03-14 23:55:26.103]: Info: WLAN interface 0 is now in low latency mode
+[2026-03-14 23:55:26.117]: Info: CLIENT CONNECTED
+[2026-03-14 23:55:26.214]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 23:55:26.215]: Info: Active GPU has HAGS disabled
+[2026-03-14 23:55:26.215]: Info: Using realtime GPU priority
+[2026-03-14 23:55:26.215]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 23:55:26.215]: Info: Desktop resolution [1920x1080]
+[2026-03-14 23:55:26.215]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:55:26.215]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 23:55:26.215]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 23:55:26.216]: Info: Creating encoder [h264_qsv]
+[2026-03-14 23:55:26.216]: Info: Color coding: SDR (Rec. 709)
+[2026-03-14 23:55:26.216]: Info: Color depth: 8-bit
+[2026-03-14 23:55:26.216]: Info: Color range: JPEG
+[2026-03-14 23:55:26.239]: Info: Capture format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:55:26.412]: Info: Virtual audio device will use 24-bit to match default device
+[2026-03-14 23:55:26.434]: Info: Changed virtual audio sink format to [S24 48000 2.0]
+[2026-03-14 23:55:26.471]: Info: Streaming bitrate is 7308000
+[2026-03-14 23:55:26.485]: Info: Audio mixer format is 32-bit, 48000 Hz, no resampling needed
+[2026-03-14 23:55:26.503]: Info: Minimum FPS target set to ~30fps (33.3333ms)
+[2026-03-14 23:55:26.764]: Info: Audio capture format is [F32 48000 2.0]
+[2026-03-14 23:55:26.768]: Info: Opus initialized: 48 kHz, 2 channels, 96 kbps (total), LOWDELAY
+[2026-03-14 23:55:27.612]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:56:13.251]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:56:13.269]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:56:13.285]: Info: CLIENT DISCONNECTED
+[2026-03-14 23:56:13.289]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:56:16.556]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:56:22.521]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:58:17.030]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:58:17.678]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:58:18.009]: Info: Executing [Desktop]
+[2026-03-14 23:58:20.140]: Info: New streaming session started [active sessions: 1]
+[2026-03-14 23:58:20.344]: Info: nvprefs: No need to modify application profile settings
+[2026-03-14 23:58:20.344]: Info: nvprefs: No need to modify global profile settings
+[2026-03-14 23:58:20.362]: Info: WLAN interface 0 is now in low latency mode
+[2026-03-14 23:58:20.404]: Info: CLIENT CONNECTED
+[2026-03-14 23:58:20.484]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 23:58:20.484]: Info: Active GPU has HAGS disabled
+[2026-03-14 23:58:20.484]: Info: Using realtime GPU priority
+[2026-03-14 23:58:20.484]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 23:58:20.484]: Info: Desktop resolution [1920x1080]
+[2026-03-14 23:58:20.484]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:58:20.485]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 23:58:20.485]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 23:58:20.486]: Info: Creating encoder [h264_qsv]
+[2026-03-14 23:58:20.486]: Info: Color coding: SDR (Rec. 709)
+[2026-03-14 23:58:20.486]: Info: Color depth: 8-bit
+[2026-03-14 23:58:20.486]: Info: Color range: JPEG
+[2026-03-14 23:58:20.502]: Info: Capture format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:58:20.678]: Info: Streaming bitrate is 7308000
+[2026-03-14 23:58:20.697]: Info: Minimum FPS target set to ~30fps (33.3333ms)
+[2026-03-14 23:58:20.731]: Info: Virtual audio device will use 24-bit to match default device
+[2026-03-14 23:58:20.752]: Info: Changed virtual audio sink format to [S24 48000 2.0]
+[2026-03-14 23:58:20.784]: Info: Audio mixer format is 32-bit, 48000 Hz, no resampling needed
+[2026-03-14 23:58:20.795]: Info: Audio capture format is [F32 48000 2.0]
+[2026-03-14 23:58:20.797]: Info: Opus initialized: 48 kHz, 2 channels, 96 kbps (total), LOWDELAY
+[2026-03-14 23:58:21.174]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:58:24.729]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:58:24.758]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:58:24.785]: Info: CLIENT DISCONNECTED
+[2026-03-14 23:58:24.791]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:58:45.058]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:58:45.693]: Warning: Unable to find MAC address for 127.0.0.1
+[2026-03-14 23:58:48.182]: Info: New streaming session started [active sessions: 1]
+[2026-03-14 23:58:48.382]: Info: nvprefs: No need to modify application profile settings
+[2026-03-14 23:58:48.382]: Info: nvprefs: No need to modify global profile settings
+[2026-03-14 23:58:48.401]: Info: WLAN interface 0 is now in low latency mode
+[2026-03-14 23:58:48.414]: Info: CLIENT CONNECTED
+[2026-03-14 23:58:48.502]: Info: 
+Device Description : Intel(R) Iris(R) Xe Graphics
+Device Vendor ID   : 0x00008086
+Device Device ID   : 0x00009A49
+Device Video Mem   : 128 MiB
+Device Sys Mem     : 0 MiB
+Share Sys Mem      : 8053 MiB
+Feature Level      : 0x0000B100
+Capture size       : 1920x1080
+Offset             : 0x0
+Virtual Desktop    : 1920x1080
+[2026-03-14 23:58:48.503]: Info: Active GPU has HAGS disabled
+[2026-03-14 23:58:48.503]: Info: Using realtime GPU priority
+[2026-03-14 23:58:48.503]: Info: 
+Colorspace         : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709
+Bits Per Color     : 6
+Red Primary        : [0.575195,0.345703]
+Green Primary      : [0.34668,0.572266]
+Blue Primary       : [0.158203,0.117188]
+White Point        : [0.313477,0.329102]
+Min Luminance      : 0.5 nits
+Max Luminance      : 270 nits
+Max Full Luminance : 270 nits
+[2026-03-14 23:58:48.503]: Info: Desktop resolution [1920x1080]
+[2026-03-14 23:58:48.503]: Info: Desktop format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:58:48.503]: Info: Display refresh rate [60.0524Hz]
+[2026-03-14 23:58:48.503]: Info: Requested frame rate [60/1 exactly 60 fps]
+[2026-03-14 23:58:48.504]: Info: Creating encoder [h264_qsv]
+[2026-03-14 23:58:48.504]: Info: Color coding: SDR (Rec. 709)
+[2026-03-14 23:58:48.504]: Info: Color depth: 8-bit
+[2026-03-14 23:58:48.504]: Info: Color range: JPEG
+[2026-03-14 23:58:48.521]: Info: Capture format [DXGI_FORMAT_B8G8R8A8_UNORM]
+[2026-03-14 23:58:48.691]: Info: Streaming bitrate is 7308000
+[2026-03-14 23:58:48.715]: Info: Minimum FPS target set to ~30fps (33.3333ms)
+[2026-03-14 23:58:48.776]: Info: Virtual audio device will use 24-bit to match default device
+[2026-03-14 23:58:48.794]: Info: Changed virtual audio sink format to [S24 48000 2.0]
+[2026-03-14 23:58:48.829]: Info: Audio mixer format is 32-bit, 48000 Hz, no resampling needed
+[2026-03-14 23:58:48.840]: Info: Audio capture format is [F32 48000 2.0]
+[2026-03-14 23:58:48.844]: Info: Opus initialized: 48 kHz, 2 channels, 96 kbps (total), LOWDELAY
+[2026-03-14 23:58:53.495]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:58:53.524]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
+[2026-03-14 23:58:53.539]: Info: CLIENT DISCONNECTED
+[2026-03-14 23:58:53.555]: Error: Couldn't receive data from udp socket: No connection could be made because the target machine actively refused it
