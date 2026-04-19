@@ -4,9 +4,11 @@
  */
 
 // standard includes
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <future>
+#include <limits>
 #include <queue>
 
 // lib includes
@@ -35,6 +37,10 @@ extern "C" {
 #include "thread_safe.h"
 #include "utility.h"
 
+#ifdef _WIN32
+  #include <Windows.h>
+#endif
+
 constexpr int IDX_START_A = 0;
 constexpr int IDX_START_B = 1;
 constexpr int IDX_INVALIDATE_REF_FRAMES = 2;
@@ -50,6 +56,7 @@ constexpr int IDX_RUMBLE_TRIGGER_DATA = 12;
 constexpr int IDX_SET_MOTION_EVENT = 13;
 constexpr int IDX_SET_RGB_LED = 14;
 constexpr int IDX_SET_ADAPTIVE_TRIGGERS = 15;
+constexpr int IDX_CURSOR_SHAPE = 16;
 
 static const short packetTypes[] = {
   0x0305,  // Start A
@@ -68,6 +75,7 @@ static const short packetTypes[] = {
   0x5501,  // Set motion event (Sunshine protocol extension)
   0x5502,  // Set RGB LED (Sunshine protocol extension)
   0x5503,  // Set Adaptive triggers (Sunshine protocol extension)
+  0x5504,  // Set cursor shape (Sunshine protocol extension)
 };
 
 namespace asio = boost::asio;
@@ -217,6 +225,13 @@ namespace stream {
 
     // Sunshine protocol extension
     SS_HDR_METADATA metadata;
+  };
+
+  struct control_cursor_shape_header_t {
+    std::uint16_t width;
+    std::uint16_t height;
+    std::uint16_t hotspot_x;
+    std::uint16_t hotspot_y;
   };
 
   typedef struct control_encrypted_t {
@@ -428,6 +443,13 @@ namespace stream {
 
       platf::feedback_queue_t feedback_queue;
       safe::mail_raw_t::event_t<video::hdr_info_t> hdr_queue;
+
+#ifdef _WIN32
+      std::uintptr_t last_cursor_handle {0};
+      bool last_cursor_visible {false};
+      std::uint64_t last_cursor_hash {0};
+      std::uint64_t last_cursor_sent_ms {0};
+#endif
     } control;
 
     std::uint32_t launch_session_id;
@@ -916,6 +938,253 @@ namespace stream {
     return 0;
   }
 
+#ifdef _WIN32
+  static std::uint64_t fnv1a64_bytes(const std::uint8_t *data, std::size_t len) {
+    constexpr std::uint64_t offset_basis = 1469598103934665603ull;
+    constexpr std::uint64_t prime = 1099511628211ull;
+    auto hash = offset_basis;
+    for (std::size_t i = 0; i < len; ++i) {
+      hash ^= data[i];
+      hash *= prime;
+    }
+    return hash;
+  }
+
+  static std::uint64_t cursor_shape_hash(bool visible, std::uint16_t width, std::uint16_t height, std::uint16_t hotspot_x, std::uint16_t hotspot_y, const std::vector<std::uint8_t> &rgba) {
+    std::uint64_t hash = 1469598103934665603ull;
+    auto mix_u16 = [&](std::uint16_t v) {
+      std::uint8_t bytes[2] = {
+        static_cast<std::uint8_t>(v & 0xff),
+        static_cast<std::uint8_t>((v >> 8) & 0xff),
+      };
+      hash ^= fnv1a64_bytes(bytes, sizeof(bytes));
+      hash *= 1099511628211ull;
+    };
+    std::uint8_t vis = visible ? 1 : 0;
+    hash ^= fnv1a64_bytes(&vis, sizeof(vis));
+    hash *= 1099511628211ull;
+    mix_u16(width);
+    mix_u16(height);
+    mix_u16(hotspot_x);
+    mix_u16(hotspot_y);
+    if (!rgba.empty()) {
+      hash ^= fnv1a64_bytes(rgba.data(), rgba.size());
+      hash *= 1099511628211ull;
+    }
+    return hash;
+  }
+
+  /**
+   * Capture cursor bitmap and hotspot from the host desktop.
+   * Returns true on success. When cursor is hidden, `visible=false` and pixel buffer is empty.
+   */
+  static bool capture_cursor_shape(bool &visible, std::uint16_t &width, std::uint16_t &height, std::uint16_t &hotspot_x, std::uint16_t &hotspot_y, std::vector<std::uint8_t> &rgba, std::uintptr_t &cursor_handle) {
+    CURSORINFO ci {};
+    ci.cbSize = sizeof(ci);
+    if (!GetCursorInfo(&ci)) {
+      return false;
+    }
+
+    cursor_handle = reinterpret_cast<std::uintptr_t>(ci.hCursor);
+    visible = (ci.flags & CURSOR_SHOWING) != 0;
+    if (!visible || !ci.hCursor) {
+      width = 0;
+      height = 0;
+      hotspot_x = 0;
+      hotspot_y = 0;
+      rgba.clear();
+      return true;
+    }
+
+    ICONINFO icon_info {};
+    if (!GetIconInfo(ci.hCursor, &icon_info)) {
+      return false;
+    }
+
+    BITMAP bm {};
+    int raw_width = 0;
+    int raw_height = 0;
+    if (icon_info.hbmColor) {
+      if (GetObject(icon_info.hbmColor, sizeof(bm), &bm) == 0) {
+        DeleteObject(icon_info.hbmMask);
+        DeleteObject(icon_info.hbmColor);
+        return false;
+      }
+      raw_width = bm.bmWidth;
+      raw_height = bm.bmHeight;
+    } else if (icon_info.hbmMask) {
+      if (GetObject(icon_info.hbmMask, sizeof(bm), &bm) == 0) {
+        DeleteObject(icon_info.hbmMask);
+        return false;
+      }
+      raw_width = bm.bmWidth;
+      raw_height = bm.bmHeight / 2;
+    }
+
+    // Browser custom cursors are typically capped around 128x128.
+    int target_width = std::clamp(raw_width, 1, 128);
+    int target_height = std::clamp(raw_height, 1, 128);
+
+    HDC screen_dc = GetDC(nullptr);
+    HDC mem_dc = CreateCompatibleDC(screen_dc);
+    BITMAPINFO bi {};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = target_width;
+    bi.bmiHeader.biHeight = -target_height;  // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    void *dib_bits = nullptr;
+    HBITMAP dib = CreateDIBSection(mem_dc, &bi, DIB_RGB_COLORS, &dib_bits, nullptr, 0);
+    if (!dib || !dib_bits) {
+      DeleteObject(icon_info.hbmMask);
+      DeleteObject(icon_info.hbmColor);
+      DeleteDC(mem_dc);
+      ReleaseDC(nullptr, screen_dc);
+      return false;
+    }
+
+    HGDIOBJ old_obj = SelectObject(mem_dc, dib);
+    PatBlt(mem_dc, 0, 0, target_width, target_height, BLACKNESS);
+    DrawIconEx(mem_dc, 0, 0, ci.hCursor, target_width, target_height, 0, nullptr, DI_NORMAL);
+
+    width = static_cast<std::uint16_t>(target_width);
+    height = static_cast<std::uint16_t>(target_height);
+    hotspot_x = static_cast<std::uint16_t>(std::min<int>(icon_info.xHotspot * target_width / std::max(raw_width, 1), target_width - 1));
+    hotspot_y = static_cast<std::uint16_t>(std::min<int>(icon_info.yHotspot * target_height / std::max(raw_height, 1), target_height - 1));
+
+    const auto *bgra = static_cast<const std::uint8_t *>(dib_bits);
+    rgba.resize(static_cast<std::size_t>(width) * height * 4);
+    std::size_t nonzero_alpha_px = 0;
+    std::size_t nonblack_rgb_px = 0;
+    for (std::size_t i = 0; i < static_cast<std::size_t>(width) * height; ++i) {
+      rgba[i * 4 + 0] = bgra[i * 4 + 2];
+      rgba[i * 4 + 1] = bgra[i * 4 + 1];
+      rgba[i * 4 + 2] = bgra[i * 4 + 0];
+      auto a = bgra[i * 4 + 3];
+      if (a < 8) {
+        a = 0;
+      } else if (a > 247) {
+        a = 255;
+      }
+      rgba[i * 4 + 3] = a;
+      if (a != 0) {
+        ++nonzero_alpha_px;
+      }
+      if (rgba[i * 4 + 0] != 0 || rgba[i * 4 + 1] != 0 || rgba[i * 4 + 2] != 0) {
+        ++nonblack_rgb_px;
+      }
+    }
+
+    // Some monochrome/system cursors can come back with a fully transparent alpha channel.
+    // When that happens, synthesize alpha from RGB presence so the cursor remains visible.
+    if (nonzero_alpha_px == 0 && nonblack_rgb_px > 0) {
+      for (std::size_t i = 0; i < static_cast<std::size_t>(width) * height; ++i) {
+        auto &r = rgba[i * 4 + 0];
+        auto &g = rgba[i * 4 + 1];
+        auto &b = rgba[i * 4 + 2];
+        auto &a = rgba[i * 4 + 3];
+        if (r != 0 || g != 0 || b != 0) {
+          a = 255;
+        }
+      }
+      BOOST_LOG(debug) << "Cursor alpha fallback applied for potentially monochrome cursor ["sv << width << 'x' << height << ']';
+    }
+
+    // Prevent dark square halos in browsers by zeroing RGB in fully transparent pixels.
+    for (std::size_t i = 0; i < static_cast<std::size_t>(width) * height; ++i) {
+      auto &a = rgba[i * 4 + 3];
+      if (a == 0) {
+        rgba[i * 4 + 0] = 0;
+        rgba[i * 4 + 1] = 0;
+        rgba[i * 4 + 2] = 0;
+      }
+    }
+
+    SelectObject(mem_dc, old_obj);
+    DeleteObject(dib);
+    DeleteObject(icon_info.hbmMask);
+    DeleteObject(icon_info.hbmColor);
+    DeleteDC(mem_dc);
+    ReleaseDC(nullptr, screen_dc);
+    return true;
+  }
+
+  static int send_cursor_shape(session_t *session) {
+    if (!session->control.peer) {
+      return 0;
+    }
+
+    bool visible = false;
+    std::uint16_t width = 0;
+    std::uint16_t height = 0;
+    std::uint16_t hotspot_x = 0;
+    std::uint16_t hotspot_y = 0;
+    std::vector<std::uint8_t> rgba {};
+    std::uintptr_t cursor_handle = 0;
+    if (!capture_cursor_shape(visible, width, height, hotspot_x, hotspot_y, rgba, cursor_handle)) {
+      return -1;
+    }
+
+    auto shape_hash = cursor_shape_hash(visible, width, height, hotspot_x, hotspot_y, rgba);
+    constexpr std::uint64_t min_cursor_resend_interval_ms = 16;
+    auto now = now_ms();
+    auto handle_unchanged = session->control.last_cursor_handle == cursor_handle;
+    auto visible_unchanged = session->control.last_cursor_visible == visible;
+    auto hash_unchanged = session->control.last_cursor_hash == shape_hash;
+    auto recently_sent = now - session->control.last_cursor_sent_ms < min_cursor_resend_interval_ms;
+
+    // Only send when visibility/shape changed. For very fast animation changes, cap at ~60 Hz.
+    if (handle_unchanged && visible_unchanged && hash_unchanged) {
+      return 0;
+    }
+    if (visible_unchanged && hash_unchanged && recently_sent) {
+      return 0;
+    }
+
+    session->control.last_cursor_visible = visible;
+    session->control.last_cursor_handle = cursor_handle;
+    session->control.last_cursor_hash = shape_hash;
+    session->control.last_cursor_sent_ms = now;
+
+    auto payload_len = sizeof(control_cursor_shape_header_t) + rgba.size();
+    if (payload_len > std::numeric_limits<std::uint16_t>::max()) {
+      return -1;
+    }
+
+    auto reason = !visible_unchanged ? "visibility-change"sv :
+      !handle_unchanged ? "handle-change"sv :
+      !hash_unchanged ? "hash-change"sv :
+      "rate-limited-resend"sv;
+    BOOST_LOG(debug) << "Sending cursor shape ["sv << width << 'x' << height << "] reason="sv << reason << " bytes="sv << rgba.size();
+
+    std::vector<std::uint8_t> plaintext(sizeof(control_header_v2) + payload_len);
+    auto *header = reinterpret_cast<control_header_v2 *>(plaintext.data());
+    header->type = packetTypes[IDX_CURSOR_SHAPE];
+    header->payloadLength = static_cast<std::uint16_t>(payload_len);
+
+    auto *shape = reinterpret_cast<control_cursor_shape_header_t *>(header->payload());
+    shape->width = width;
+    shape->height = height;
+    shape->hotspot_x = hotspot_x;
+    shape->hotspot_y = hotspot_y;
+    if (!rgba.empty()) {
+      std::copy(rgba.begin(), rgba.end(), reinterpret_cast<std::uint8_t *>(shape + 1));
+    }
+
+    constexpr std::size_t max_cursor_plaintext_size = sizeof(control_header_v2) + sizeof(control_cursor_shape_header_t) + (128 * 128 * 4);
+    std::array<std::uint8_t, sizeof(control_encrypted_t) + crypto::cipher::round_to_pkcs7_padded(max_cursor_plaintext_size) + crypto::cipher::tag_size> encrypted_payload {};
+    auto payload = encode_control(session, std::string_view {reinterpret_cast<const char *>(plaintext.data()), plaintext.size()}, encrypted_payload);
+    if (payload.empty()) {
+      return -1;
+    }
+
+    auto server = session->broadcast_ref;
+    return server->control_server.send(payload, session->control.peer);
+  }
+#endif
+
   int send_hdr_mode(session_t *session, video::hdr_info_t hdr_info) {
     if (!session->control.peer) {
       BOOST_LOG(warning) << "Couldn't send HDR mode, still waiting for PING from Moonlight"sv;
@@ -1166,6 +1435,11 @@ namespace stream {
 
               send_hdr_mode(session, std::move(hdr_info));
             }
+
+#ifdef _WIN32
+            // Keep Moonlight cursor shape synchronized with host cursor state.
+            send_cursor_shape(session);
+#endif
           }
 
           ++pos;

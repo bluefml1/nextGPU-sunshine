@@ -1349,7 +1349,10 @@ namespace video {
         return true;
       };
 
-      auto status = disp->capture(push_captured_image_callback, pull_free_image_callback, &display_cursor);
+      // Render the cursor on the client side from explicit cursor-shape updates.
+      // Keep host cursor out of the encoded video to avoid double cursors.
+      bool capture_cursor = false;
+      auto status = disp->capture(push_captured_image_callback, pull_free_image_callback, &capture_cursor);
 
       if (artificial_reinit && status != platf::capture_e::error) {
         status = platf::capture_e::reinit;
@@ -2324,7 +2327,10 @@ namespace video {
         return true;
       };
 
-      auto status = disp->capture(push_captured_image_callback, pull_free_image_callback, &display_cursor);
+      // Render the cursor on the client side from explicit cursor-shape updates.
+      // Keep host cursor out of the encoded video to avoid double cursors.
+      bool capture_cursor = false;
+      auto status = disp->capture(push_captured_image_callback, pull_free_image_callback, &capture_cursor);
       switch (status) {
         case platf::capture_e::reinit:
         case platf::capture_e::error:
