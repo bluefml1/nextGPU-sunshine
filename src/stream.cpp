@@ -449,6 +449,10 @@ namespace stream {
       bool last_cursor_visible {false};
       std::uint64_t last_cursor_hash {0};
       std::uint64_t last_cursor_sent_ms {0};
+      std::uint64_t last_cursor_rate_log_ms {0};
+      std::uint32_t cursor_sent_count {0};
+      std::uint32_t cursor_rate_limited_drop_count {0};
+      std::uint64_t cursor_sent_bytes {0};
 #endif
     } control;
 
@@ -1128,18 +1132,35 @@ namespace stream {
     }
 
     auto shape_hash = cursor_shape_hash(visible, width, height, hotspot_x, hotspot_y, rgba);
-    constexpr std::uint64_t min_cursor_resend_interval_ms = 16;
+    constexpr std::uint64_t min_cursor_send_interval_ms = 16;
     auto now = now_ms();
     auto handle_unchanged = session->control.last_cursor_handle == cursor_handle;
     auto visible_unchanged = session->control.last_cursor_visible == visible;
     auto hash_unchanged = session->control.last_cursor_hash == shape_hash;
-    auto recently_sent = now - session->control.last_cursor_sent_ms < min_cursor_resend_interval_ms;
+    auto recently_sent = now - session->control.last_cursor_sent_ms < min_cursor_send_interval_ms;
+    auto visibility_changed = !visible_unchanged;
 
-    // Only send when visibility/shape changed. For very fast animation changes, cap at ~60 Hz.
+    // Only send when visibility/shape changed.
     if (handle_unchanged && visible_unchanged && hash_unchanged) {
       return 0;
     }
-    if (visible_unchanged && hash_unchanged && recently_sent) {
+
+    // Cap cursor shape traffic at ~60 Hz even for rapidly changing animated cursors.
+    // Visibility changes bypass the limiter to avoid delayed hide/show transitions.
+    if (!visibility_changed && recently_sent) {
+      ++session->control.cursor_rate_limited_drop_count;
+
+      if (session->control.last_cursor_rate_log_ms == 0) {
+        session->control.last_cursor_rate_log_ms = now;
+      } else if (now - session->control.last_cursor_rate_log_ms >= 1000) {
+        BOOST_LOG(debug) << "Cursor shape rate stats: sent="sv << session->control.cursor_sent_count
+                         << " dropped_rate_limited="sv << session->control.cursor_rate_limited_drop_count
+                         << " bytes="sv << session->control.cursor_sent_bytes;
+        session->control.cursor_sent_count = 0;
+        session->control.cursor_rate_limited_drop_count = 0;
+        session->control.cursor_sent_bytes = 0;
+        session->control.last_cursor_rate_log_ms = now;
+      }
       return 0;
     }
 
@@ -1156,8 +1177,9 @@ namespace stream {
     auto reason = !visible_unchanged ? "visibility-change"sv :
       !handle_unchanged ? "handle-change"sv :
       !hash_unchanged ? "hash-change"sv :
-      "rate-limited-resend"sv;
-    BOOST_LOG(debug) << "Sending cursor shape ["sv << width << 'x' << height << "] reason="sv << reason << " bytes="sv << rgba.size();
+      "state-change"sv;
+    BOOST_LOG(debug) << "Sending cursor shape ["sv << width << 'x' << height << "] reason="sv << reason
+                     << " rgba_bytes="sv << rgba.size() << " payload_bytes="sv << payload_len;
 
     std::vector<std::uint8_t> plaintext(sizeof(control_header_v2) + payload_len);
     auto *header = reinterpret_cast<control_header_v2 *>(plaintext.data());
@@ -1181,7 +1203,25 @@ namespace stream {
     }
 
     auto server = session->broadcast_ref;
-    return server->control_server.send(payload, session->control.peer);
+    auto send_rc = server->control_server.send(payload, session->control.peer);
+    if (send_rc == 0) {
+      ++session->control.cursor_sent_count;
+      session->control.cursor_sent_bytes += rgba.size();
+      if (session->control.last_cursor_rate_log_ms == 0) {
+        session->control.last_cursor_rate_log_ms = now;
+      } else if (now - session->control.last_cursor_rate_log_ms >= 1000) {
+        BOOST_LOG(debug) << "Cursor shape rate stats: sent="sv << session->control.cursor_sent_count
+                         << " dropped_rate_limited="sv << session->control.cursor_rate_limited_drop_count
+                         << " bytes="sv << session->control.cursor_sent_bytes;
+        session->control.cursor_sent_count = 0;
+        session->control.cursor_rate_limited_drop_count = 0;
+        session->control.cursor_sent_bytes = 0;
+        session->control.last_cursor_rate_log_ms = now;
+      }
+    } else {
+      BOOST_LOG(warning) << "Failed to send cursor shape packet, rc="sv << send_rc;
+    }
+    return send_rc;
   }
 #endif
 
