@@ -41,6 +41,7 @@
 #include "nvhttp.h"
 #include "platform/common.h"
 #include "process.h"
+#include "stream.h"
 #include "utility.h"
 #include "uuid.h"
 
@@ -1649,6 +1650,87 @@ namespace confighttp {
     }
   }
 
+  /**
+   * Fork-only (nextGPU / Moonlight web): localhost POST to change in-session encoder target bitrate.
+   * Not part of upstream LizardByte Sunshine. No Web UI session auth — rely on loopback + optional
+   * `SUNSHINE_BITRATE_TOKEN` env matching `X-Sunshine-Bitrate-Token` header.
+   */
+  void mlStreamBitratePost(const resp_https_t &response, const req_https_t &request) {
+    SimpleWeb::CaseInsensitiveMultimap headers {
+      {"Content-Type", "application/json"},
+      {"X-Frame-Options", "DENY"},
+      {"Content-Security-Policy", "frame-ancestors 'none';"},
+    };
+
+    try {
+      const auto addr = request->remote_endpoint().address();
+      std::optional<std::string> token_hdr;
+      if (const auto it = request->header.find("X-Sunshine-Bitrate-Token"); it != request->header.end()) {
+        token_hdr = it->second;
+      }
+
+      const auto body = nlohmann::json::parse(request->content);
+      const auto requested = body.value("bitrate_kbps", 0);
+      if (requested <= 0) {
+        nlohmann::json err {{"ok", false}, {"error", "bitrate_kbps required"}};
+        response->write(SimpleWeb::StatusCode::client_error_bad_request, err.dump(), headers);
+        return;
+      }
+
+      std::uint32_t applied = 0;
+      const int sc = stream::ml_stream_bitrate_http_post(addr, token_hdr, (std::uint32_t) requested, &applied);
+
+      nlohmann::json out {
+        {"ok", sc == 200},
+        {"requested_kbps", requested},
+        {"applied_kbps", applied},
+      };
+
+      if (sc == 200) {
+        send_response(response, out);
+        return;
+      }
+
+      const char *msg = "error";
+      SimpleWeb::StatusCode code = SimpleWeb::StatusCode::server_error_internal_server_error;
+      switch (sc) {
+        case 400:
+          msg = "bad_request";
+          code = SimpleWeb::StatusCode::client_error_bad_request;
+          break;
+        case 401:
+          msg = "unauthorized";
+          code = SimpleWeb::StatusCode::client_error_unauthorized;
+          break;
+        case 403:
+          msg = "forbidden";
+          code = SimpleWeb::StatusCode::client_error_forbidden;
+          break;
+        case 404:
+          msg = "no_active_session";
+          code = SimpleWeb::StatusCode::client_error_not_found;
+          break;
+        case 409:
+          msg = "multiple_sessions";
+          code = SimpleWeb::StatusCode::client_error_conflict;
+          break;
+        case 503:
+          msg = "session_unavailable";
+          code = SimpleWeb::StatusCode::server_error_service_unavailable;
+          break;
+        default:
+          msg = "internal_error";
+          break;
+      }
+      out["error"] = msg;
+      response->write(code, out.dump(), headers);
+    } catch (const std::exception &e) {
+      BOOST_LOG(warning) << "ml-stream-bitrate: "sv << e.what();
+      nlohmann::json err {{"ok", false}, {"error", e.what()}};
+      response->write(SimpleWeb::StatusCode::client_error_bad_request, err.dump(), headers);
+    }
+  }
+
   void start() {
     platf::set_thread_name("confighttp");
     const auto shutdown_event = mail::man->event<bool>(mail::shutdown);
@@ -1692,6 +1774,7 @@ namespace confighttp {
     server.resource["^/welcome/?$"]["GET"] = page_handler("welcome.html", false, true);
 
     // rest api
+    server.resource["^/api/ml-stream-bitrate$"]["POST"] = mlStreamBitratePost;
     server.resource["^/api/browse$"]["GET"] = browseDirectory;
     server.resource["^/api/apps$"]["GET"] = getApps;
     server.resource["^/api/apps$"]["POST"] = saveApp;

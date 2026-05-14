@@ -2,10 +2,24 @@
  * @file src/video.cpp
  * @brief Definitions for video.
  */
+#ifdef _WIN32
+  // Boost.Asio requires winsock2.h before windows.h; FFmpeg headers may include windows.h first.
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #ifndef NOMINMAX
+    #define NOMINMAX
+  #endif
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+#endif
+
 // standard includes
+#include <algorithm>
 #include <atomic>
 #include <bitset>
 #include <list>
+#include <optional>
 #include <thread>
 
 // lib includes
@@ -27,6 +41,7 @@ extern "C" {
 #include "logging.h"
 #include "nvenc/nvenc_base.h"
 #include "platform/common.h"
+#include "stream.h"
 #include "sync.h"
 #include "video.h"
 
@@ -421,6 +436,13 @@ namespace video {
       return result;
     }
 
+    bool reconfigure_average_bitrate_kbps(std::uint32_t kbps_k) {
+      if (!device || !device->nvenc) {
+        return false;
+      }
+      return device->nvenc->reconfigure_average_bitrate_kbps(kbps_k, config::video.nv);
+    }
+
   private:
     std::unique_ptr<platf::nvenc_encode_device_t> device;
     bool force_idr = false;
@@ -431,6 +453,7 @@ namespace video {
     safe::mail_raw_t::event_t<bool> shutdown_event;
     safe::mail_raw_t::queue_t<packet_t> packets;
     safe::mail_raw_t::event_t<bool> idr_events;
+    safe::mail_raw_t::queue_t<std::uint32_t> target_bitrate_kbps_q;
     safe::mail_raw_t::event_t<hdr_info_t> hdr_events;
     safe::mail_raw_t::event_t<input::touch_port_t> touch_port_events;
 
@@ -1942,6 +1965,52 @@ namespace video {
     return nullptr;
   }
 
+  bool apply_encoder_target_bitrate_kbps(
+    encode_session_t &enc_session,
+    const encoder_t &encoder,
+    const config_t &client_cfg,
+    std::uint32_t kbps_k) {
+    if (auto *nv_session = dynamic_cast<nvenc_encode_session_t *>(&enc_session)) {
+      return nv_session->reconfigure_average_bitrate_kbps(kbps_k);
+    }
+
+    if (auto *av_session = dynamic_cast<avcodec_encode_session_t *>(&enc_session)) {
+      auto &ctx = av_session->avcodec_ctx;
+      const auto bitrate = (std::int64_t) kbps_k * 1000;
+      ctx->rc_max_rate = bitrate;
+      ctx->bit_rate = bitrate;
+      if (encoder.flags & CBR_WITH_VBR) {
+        ctx->bit_rate = bitrate - 1;
+      } else {
+        ctx->rc_min_rate = bitrate;
+      }
+
+      const bool hardware = av_session->device->data != nullptr;
+      if (!(encoder.flags & NO_RC_BUF_LIMIT)) {
+        if (!hardware && (ctx->slices > 1 || client_cfg.videoFormat == 1)) {
+          ctx->rc_buffer_size = (int) (bitrate / ((client_cfg.framerate * 10) / 15));
+        } else {
+          int fps = client_cfg.framerate > 0 ? client_cfg.framerate : 60;
+          if (client_cfg.framerateX100 > 0) {
+            auto r = framerateX100_to_rational(client_cfg.framerateX100);
+            if (r.den > 0) {
+              fps = (int) std::max(1, (r.num + r.den - 1) / r.den);
+            }
+          }
+          ctx->rc_buffer_size = (int) (bitrate / fps);
+#ifndef __APPLE__
+          if (encoder.name == "nvenc" && config::video.nv_legacy.vbv_percentage_increase > 0) {
+            ctx->rc_buffer_size += ctx->rc_buffer_size * config::video.nv_legacy.vbv_percentage_increase / 100;
+          }
+#endif
+        }
+      }
+      return true;
+    }
+
+    return false;
+  }
+
   void encode_run(
     int &frame_nr,  // Store progress of the frame number
     safe::mail_t mail,
@@ -1985,6 +2054,7 @@ namespace video {
     auto packets = mail::man->queue<packet_t>(mail::video_packets);
     auto idr_events = mail->event<bool>(mail::idr);
     auto invalidate_ref_frames_events = mail->event<std::pair<int64_t, int64_t>>(mail::invalidate_ref_frames);
+    auto target_bitrate_kbps_q = mail->queue<std::uint32_t>(mail::video_target_bitrate_kbps);
 
     {
       // Load a dummy image into the AVFrame to ensure we have something to encode
@@ -2014,6 +2084,26 @@ namespace video {
       while (invalidate_ref_frames_events->peek()) {
         if (auto frames = invalidate_ref_frames_events->pop(0ms)) {
           session->invalidate_ref_frames(frames->first, frames->second);
+        }
+      }
+
+      std::optional<std::uint32_t> pending_bitrate_kbps;
+      while (true) {
+        auto popped = target_bitrate_kbps_q->pop(0ms);
+        if (!popped) {
+          break;
+        }
+        pending_bitrate_kbps = *popped;
+      }
+      if (pending_bitrate_kbps && channel_data) {
+        auto *stream_sess = static_cast<stream::session_t *>(channel_data);
+        const auto clamped = stream::ml_clamp_target_bitrate_kbps_for_running_session(stream_sess, *pending_bitrate_kbps);
+        if (apply_encoder_target_bitrate_kbps(*session, encoder, config, clamped)) {
+          stream::ml_sync_session_after_bitrate_reconfigure(stream_sess, clamped);
+          BOOST_LOG(info) << "Realtime video bitrate now "sv << clamped << " kbps (session "sv << stream::ml_launch_session_id_for_opaque_session(stream_sess) << ")"sv;
+          session->request_idr_frame();
+        } else {
+          BOOST_LOG(warning) << "Realtime video bitrate reconfigure failed ("sv << clamped << " kbps)"sv;
         }
       }
 
@@ -2284,6 +2374,28 @@ namespace video {
             continue;
           }
 
+          std::optional<std::uint32_t> pending_bitrate_kbps;
+          if (ctx->target_bitrate_kbps_q) {
+            while (true) {
+              auto popped = ctx->target_bitrate_kbps_q->pop(0ms);
+              if (!popped) {
+                break;
+              }
+              pending_bitrate_kbps = *popped;
+            }
+          }
+          if (pending_bitrate_kbps && ctx->channel_data) {
+            auto *stream_sess = static_cast<stream::session_t *>(ctx->channel_data);
+            const auto clamped = stream::ml_clamp_target_bitrate_kbps_for_running_session(stream_sess, *pending_bitrate_kbps);
+            if (apply_encoder_target_bitrate_kbps(*pos->session, encoder, ctx->config, clamped)) {
+              stream::ml_sync_session_after_bitrate_reconfigure(stream_sess, clamped);
+              BOOST_LOG(info) << "Realtime video bitrate now "sv << clamped << " kbps (session "sv << stream::ml_launch_session_id_for_opaque_session(stream_sess) << ")"sv;
+              pos->session->request_idr_frame();
+            } else {
+              BOOST_LOG(warning) << "Realtime video bitrate reconfigure failed ("sv << clamped << " kbps)"sv;
+            }
+          }
+
           if (ctx->idr_events->peek()) {
             pos->session->request_idr_frame();
             ctx->idr_events->pop();
@@ -2475,6 +2587,7 @@ namespace video {
         mail->event<bool>(mail::shutdown),
         mail::man->queue<packet_t>(mail::video_packets),
         std::move(idr_events),
+        mail->queue<std::uint32_t>(mail::video_target_bitrate_kbps),
         mail->event<hdr_info_t>(mail::hdr),
         mail->event<input::touch_port_t>(mail::touch_port),
         config,

@@ -5,6 +5,8 @@
 #pragma once
 
 // standard includes
+#include <cstdint>
+#include <optional>
 #include <utility>
 
 // lib includes
@@ -52,4 +54,25 @@ namespace stream {
     void join(session_t &session);
     state_e state(session_t &session);
   }  // namespace session
+
+  /**
+   * @brief Fork-only HTTP hook (nextGPU / Moonlight web): enqueue a realtime video target bitrate (kbps).
+   * @details Loopback-only unless relaxed by deployment. Optional env `SUNSHINE_BITRATE_TOKEN` must match header
+   *          `X-Sunshine-Bitrate-Token` when set. Not upstream LizardByte behavior.
+   * @return HTTP-style status: 200, 400, 401, 403, 404, 409, 503.
+   */
+  int ml_stream_bitrate_http_post(
+    const boost::asio::ip::address &remote,
+    const std::optional<std::string> &x_sunshine_bitrate_token,
+    std::uint32_t requested_kbps,
+    std::uint32_t *applied_kbps_out);
+
+  /** `session_opaque` is `stream::session_t*` from the video pipeline. Returns 0 if null. */
+  std::uint32_t ml_launch_session_id_for_opaque_session(void *session_opaque);
+
+  /** `session_opaque` is `stream::session_t*` from the video pipeline. */
+  std::uint32_t ml_clamp_target_bitrate_kbps_for_running_session(void *session_opaque, std::uint32_t requested_kbps);
+
+  /** After host encoder accepts a new target bitrate, sync monitor + ABR ceiling. */
+  void ml_sync_session_after_bitrate_reconfigure(void *session_opaque, std::uint32_t applied_kbps);
 }  // namespace stream

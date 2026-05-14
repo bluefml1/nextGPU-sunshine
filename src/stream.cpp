@@ -6,6 +6,7 @@
 // standard includes
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <future>
 #include <limits>
@@ -408,6 +409,7 @@ namespace stream {
 
       safe::mail_raw_t::event_t<bool> idr_events;
       safe::mail_raw_t::event_t<std::pair<int64_t, int64_t>> invalidate_ref_frames_events;
+      safe::mail_raw_t::queue_t<std::uint32_t> target_bitrate_kbps_q;
 
       std::unique_ptr<platf::deinit_t> qos;
     } video;
@@ -2439,6 +2441,7 @@ namespace stream {
 
       session->video.idr_events = mail->event<bool>(mail::idr);
       session->video.invalidate_ref_frames_events = mail->event<std::pair<int64_t, int64_t>>(mail::invalidate_ref_frames);
+      session->video.target_bitrate_kbps_q = mail->queue<std::uint32_t>(mail::video_target_bitrate_kbps);
       session->video.lowseq = 0;
       session->video.ping_payload = launch_session.av_ping_payload;
       if (config.encryptionFlagsEnabled & SS_ENC_VIDEO) {
@@ -2506,4 +2509,108 @@ namespace stream {
       return session;
     }
   }  // namespace session
+
+  std::uint32_t ml_launch_session_id_for_opaque_session(void *session_opaque) {
+    auto *const session = static_cast<session_t *>(session_opaque);
+    return session ? session->launch_session_id : 0;
+  }
+
+  std::uint32_t ml_clamp_target_bitrate_kbps_for_running_session(void *session_opaque, std::uint32_t requested_kbps) {
+    auto *const session = static_cast<session_t *>(session_opaque);
+    if (!session) {
+      return requested_kbps;
+    }
+    std::uint32_t kbps = requested_kbps;
+    if (kbps < 500) {
+      kbps = 500;
+    }
+    if (config::video.max_bitrate > 0) {
+      kbps = std::min(kbps, (std::uint32_t) config::video.max_bitrate);
+    }
+    if (kbps < session->abr.min_bitrate_kbps) {
+      kbps = session->abr.min_bitrate_kbps;
+    }
+    return kbps;
+  }
+
+  void ml_sync_session_after_bitrate_reconfigure(void *session_opaque, std::uint32_t applied_kbps) {
+    auto *const session = static_cast<session_t *>(session_opaque);
+    if (!session) {
+      return;
+    }
+    session->config.monitor.bitrate = applied_kbps;
+    session->abr.max_bitrate_kbps = applied_kbps;
+    if (session->abr.current_bitrate_kbps > session->abr.max_bitrate_kbps) {
+      session->abr.current_bitrate_kbps = session->abr.max_bitrate_kbps;
+    }
+    session->abr.last_change_ts = now_ms();
+  }
+
+  int ml_stream_bitrate_http_post(
+    const boost::asio::ip::address &remote,
+    const std::optional<std::string> &x_sunshine_bitrate_token,
+    std::uint32_t requested_kbps,
+    std::uint32_t *applied_kbps_out) {
+    if (!remote.is_loopback()) {
+      BOOST_LOG(warning) << "ml-stream-bitrate: rejected non-loopback client "sv << remote;
+      return 403;
+    }
+
+    if (const char *expect = std::getenv("SUNSHINE_BITRATE_TOKEN")) {
+      if (expect[0] != '\0') {
+        if (!x_sunshine_bitrate_token || *x_sunshine_bitrate_token != expect) {
+          BOOST_LOG(warning) << "ml-stream-bitrate: unauthorized (token mismatch or missing)"sv;
+          return 401;
+        }
+      }
+    }
+
+    if (requested_kbps < 500) {
+      return 400;
+    }
+
+    auto ref = broadcast.ref();
+    if (!ref) {
+      return 503;
+    }
+
+    auto lg = ref->control_server._sessions.lock();
+    auto &sessions = *ref->control_server._sessions;
+
+    std::vector<session_t *> running;
+    running.reserve(sessions.size());
+    for (auto *s : sessions) {
+      if (!s) {
+        continue;
+      }
+      if (s->state.load(std::memory_order_relaxed) != session::state_e::RUNNING) {
+        continue;
+      }
+      running.push_back(s);
+    }
+
+    if (running.empty()) {
+      BOOST_LOG(info) << "ml-stream-bitrate: no active RUNNING session"sv;
+      return 404;
+    }
+    if (running.size() > 1) {
+      BOOST_LOG(warning) << "ml-stream-bitrate: multiple active sessions ("sv << running.size() << "), refusing"sv;
+      return 409;
+    }
+
+    session_t *sess = running[0];
+    if (!sess->video.target_bitrate_kbps_q) {
+      return 503;
+    }
+
+    const auto applied = ml_clamp_target_bitrate_kbps_for_running_session(sess, requested_kbps);
+    sess->video.target_bitrate_kbps_q->raise(applied);
+
+    if (applied_kbps_out) {
+      *applied_kbps_out = applied;
+    }
+
+    BOOST_LOG(info) << "ml-stream-bitrate: queued target "sv << applied << " kbps (requested "sv << requested_kbps << ", launch_session_id="sv << sess->launch_session_id << ")"sv;
+    return 200;
+  }
 }  // namespace stream

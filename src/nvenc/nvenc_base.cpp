@@ -6,6 +6,7 @@
 #include "nvenc_base.h"
 
 // standard includes
+#include <algorithm>
 #include <format>
 
 // local includes
@@ -394,6 +395,11 @@ namespace nvenc {
       return false;
     }
 
+    enc_config_template = enc_config;
+    init_params_template = init_params;
+    init_params_template.encodeConfig = &enc_config_template;
+    encoder_templates_valid = true;
+
     if (async_event_handle) {
       NV_ENC_EVENT_PARAMS event_params = {min_struct_version(NV_ENC_EVENT_PARAMS_VER)};
       event_params.completionEvent = async_event_handle;
@@ -465,6 +471,7 @@ namespace nvenc {
   }
 
   void nvenc_base::destroy_encoder() {
+    encoder_templates_valid = false;
     if (output_bitstream) {
       if (nvenc_failed(nvenc->nvEncDestroyBitstreamBuffer(encoder, output_bitstream))) {
         BOOST_LOG(error) << "NvEnc: NvEncDestroyBitstreamBuffer() failed: " << last_nvenc_error_string;
@@ -685,5 +692,45 @@ namespace nvenc {
     }
 
     return version;
+  }
+
+  bool nvenc_base::reconfigure_average_bitrate_kbps(std::uint32_t bitrate_kbps, const nvenc_config &nv_cfg) {
+    if (!encoder || !encoder_templates_valid) {
+      return false;
+    }
+
+    auto get_encoder_cap = [&](NV_ENC_CAPS cap) {
+      NV_ENC_CAPS_PARAM param = {min_struct_version(NV_ENC_CAPS_PARAM_VER), cap};
+      int value = 0;
+      nvenc->nvEncGetEncodeCaps(encoder, init_params_template.encodeGUID, &param, &value);
+      return value;
+    };
+
+    enc_config_template.rcParams.averageBitRate = bitrate_kbps * 1000u;
+
+    if (get_encoder_cap(NV_ENC_CAPS_SUPPORT_CUSTOM_VBV_BUF_SIZE)) {
+      unsigned fps = 60;
+      if (init_params_template.frameRateDen > 0) {
+        fps = (unsigned) std::max(1, (int) (init_params_template.frameRateNum / init_params_template.frameRateDen));
+      }
+      enc_config_template.rcParams.vbvBufferSize = bitrate_kbps * 1000u / fps;
+      if (nv_cfg.vbv_percentage_increase > 0) {
+        enc_config_template.rcParams.vbvBufferSize += enc_config_template.rcParams.vbvBufferSize * nv_cfg.vbv_percentage_increase / 100;
+      }
+    }
+
+    NV_ENC_RECONFIGURE_PARAMS reconf = {min_struct_version(NV_ENC_RECONFIGURE_PARAMS_VER)};
+    reconf.reInitEncodeParams = init_params_template;
+    reconf.reInitEncodeParams.encodeConfig = &enc_config_template;
+    reconf.resetEncoder = 1;
+    reconf.forceIDR = 1;
+
+    if (nvenc_failed(nvenc->nvEncReconfigureEncoder(encoder, &reconf))) {
+      BOOST_LOG(error) << "NvEnc: NvEncReconfigureEncoder() failed: " << last_nvenc_error_string;
+      return false;
+    }
+
+    BOOST_LOG(info) << "NvEnc: reconfigured streaming bitrate to "sv << bitrate_kbps << " kbps"sv;
+    return true;
   }
 }  // namespace nvenc

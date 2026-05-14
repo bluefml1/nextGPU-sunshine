@@ -69,6 +69,12 @@ namespace nvenc {
      */
     bool invalidate_ref_frames(uint64_t first_frame, uint64_t last_frame);
 
+    /**
+     * @brief Change average bitrate (kbps) on a live encoder via NvEncReconfigureEncoder.
+     * @return false if unsupported or driver error
+     */
+    bool reconfigure_average_bitrate_kbps(std::uint32_t bitrate_kbps, const nvenc_config &nv_cfg);
+
   protected:
     /**
      * @brief Required. Used for loading NvEnc library and setting `nvenc` variable with `NvEncodeAPICreateInstance()`.
@@ -143,6 +149,10 @@ namespace nvenc {
   private:
     NV_ENC_OUTPUT_PTR output_bitstream = nullptr;
     uint32_t minimum_api_version = 0;
+
+    NV_ENC_CONFIG enc_config_template {};
+    NV_ENC_INITIALIZE_PARAMS init_params_template {};
+    bool encoder_templates_valid = false;
 
     struct {
       uint64_t last_encoded_frame_index = 0;
